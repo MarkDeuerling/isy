@@ -96,10 +96,8 @@ if __name__ == "__main__":
 
     # 4. compute magnitude of gradients
     mag = np.sqrt(sobel_x ** 2 + sobel_y ** 2).astype(np.float)
-
     normalized_img = np.zeros(mag.shape)
     mog = cv2.normalize(mag, normalized_img, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-
     # Show resulting images
     cv2.imshow("sobel_x", sobel_x)
     cv2.imshow("sobel_y", sobel_y)
