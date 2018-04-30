@@ -3,6 +3,7 @@ import cv2
 cap = cv2.VideoCapture(0)
 mode = 0
 
+
 def gaus_thresh(img):
     gray_img_1_channel = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # remove noise

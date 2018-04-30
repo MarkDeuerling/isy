@@ -46,7 +46,6 @@ def convolution_2d(img, kernel):
     :param kernel: convolution matrix - 3x3, or 5x5 matrix
     :return: result of the convolution
     """
-    # TODO write convolution of arbritrary sized convolution here
     # Hint: you need the kernelsize
 
     offset = int(kernel.shape[0]/2)
