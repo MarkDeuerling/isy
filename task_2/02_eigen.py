@@ -52,13 +52,12 @@ eigMat = np.zeros((2, 2), np.float32)
 # compute values for matrix eigMat and fill matrix with
 # necessary values
 
-_, w, v = cv2.eigen(eigMat, True)
+eigMat = cv2.cornerHarris(img, 2, 3, 0.04)
 
 # compute eigenvectors and eigenvalues using the numpy
 # linear algebra package
 
-# YOUR CODE HERE
-# nop, not this time, maybe in non-term if I have more time and passion (for example in Unity) :)
+_, w, v = cv2.eigen(eigMat, True)
 
 # out and show the image
 print("matrix:", eigMat, '\n')
