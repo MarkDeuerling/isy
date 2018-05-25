@@ -41,7 +41,7 @@ def compute_simple_hog(imgcolor, keypoints):
         print('kp:{}, size:{}'.format(kp.pt, kp.size))
         x = int(kp.pt[0])
         y = int(kp.pt[1])
-        size = int(kp.size) >> 2
+        size = int(kp.size) >> 1
         # extract angle in keypoint sub window
         phase_kp = phase[x-size:x+size, y-size:y+size]
 
