@@ -1,6 +1,4 @@
 import cv2
-import glob
-import numpy as np
 
 '''NOTE: Please install opencv-contrib-python in your env'''
 
@@ -8,7 +6,6 @@ import numpy as np
 def detect_and_compute(image):
     descriptor = cv2.xfeatures2d.SIFT_create()
     (kps, features) = descriptor.detectAndCompute(image, None)
-    # kps = np.float32([kp.pt for kp in kps])
     return kps, features
 
 
@@ -16,7 +13,7 @@ marker = glob.glob('./images/marker.jpg')
 marker = cv2.imread(marker[0])
 
 '''
-NOTE: If you'd like to use the vedoe capture comment out line 24, 26, 27 
+NOTE: If you'd like to use the vedoe capture comment out line 21, 23, 24, 53
 and comment line 30
 
 '''
