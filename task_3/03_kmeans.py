@@ -2,6 +2,11 @@ import numpy as np
 import cv2
 import math
 import sys
+from copy import deepcopy
+from matplotlib import pyplot as plt
+plt.rcParams['figure.figsize'] = (16, 9)
+plt.style.use('ggplot')
+
 
 
 ############################################################
@@ -12,8 +17,7 @@ import sys
 
 # implement distance metric - e.g. squared distances between pixels
 def distance(a, b):
-    pass
-    # YOUR CODE HERE
+    return np.linalg.norm(a-b, axis=1)
 
 # k-means works in 3 steps
 # 1. initialize
@@ -21,10 +25,11 @@ def distance(a, b):
 # 3. update mean
 # then iterate between 2 and 3 until convergence, i.e. until ~smaller than 5% change rate in the error
 
+
 def update_mean(img, clustermask):
     """This function should compute the new cluster center, i.e. numcluster mean colors"""
-    # YOUR CODE HERE
     pass
+
 
 def assign_to_current_mean(img, result, clustermask):
     """The function expects the img, the resulting image and a clustermask.
@@ -33,15 +38,23 @@ def assign_to_current_mean(img, result, clustermask):
     Return: the overall error (distance) for all pixels to there closest cluster center (mindistance px - cluster center).
     """
     overall_dist = 0
-    # YOUR CODE HERE
-    return overall_dist
 
+
+
+    return overall_dist
 
 
 def initialize(img):
     """inittialize the current_cluster_centers array for each cluster with a random pixel position"""
-    # YOUR CODE HERE
+    k = 3
+    c_x = np.random.randint(0, np.max(img), size=k)
+    c_y = np.random.randint(0, np.max(img), size=k)
+    current_cluster_centers = np.array(list(zip(c_x, c_y)), dtype=np.float32)
+    c = dict(enumerate(current_cluster_centers))
     print(current_cluster_centers)
+    Z = img.reshape((-1, 3))
+    Z = np.float32(Z)
+    return c, Z
 
 
 def kmeans(img):
@@ -58,11 +71,14 @@ def kmeans(img):
     result = np.zeros((h1, w1, 3), np.uint8)
 
     # initializes each pixel to a cluster
-    # iterate for a given number of iterations or if rate of change is
-    # very small
-    # YOUR CODE HERE
+    # iterate for a given number of iterations or if rate of change is very small
+    c, z = initialize(img)
+    while 0:
+        pass
+
 
     return result
+
 
 # num of cluster
 numclusters = 3
@@ -75,6 +91,7 @@ current_cluster_centers = np.zeros((numclusters, 1, 3), np.float32)
 imgraw = cv2.imread('./images/Lenna.png')
 scaling_factor = 0.5
 imgraw = cv2.resize(imgraw, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+
 
 # compare different color spaces and their result for clustering
 # YOUR CODE HERE or keep going with loaded RGB colorspace img = imgraw
