@@ -17,7 +17,7 @@ plt.style.use('ggplot')
 
 # implement distance metric - e.g. squared distances between pixels
 def distance(a, b):
-    return np.linalg.norm(a-b, axis=1)
+    return np.linalg.norm(a-b)
 
 # k-means works in 3 steps
 # 1. initialize
@@ -44,20 +44,25 @@ def assign_to_current_mean(img, result, clustermask):
     return overall_dist
 
 
-def initialize(img):
+def initialize(img, cluster_colors):
     """inittialize the current_cluster_centers array for each cluster with a random pixel position"""
     k = 3
-    c_x = np.random.randint(0, np.max(img), size=k)
-    c_y = np.random.randint(0, np.max(img), size=k)
-    current_cluster_centers = np.array(list(zip(c_x, c_y)), dtype=np.float32)
-    c = dict(enumerate(current_cluster_centers))
-    print(current_cluster_centers)
-    Z = img.reshape((-1, 3))
-    Z = np.float32(Z)
-    return c, Z
+    c = []
+    for i in range(k):
+        x = np.random.randint(0, np.max(img))
+        y = np.random.randint(0, np.max(img))
+        c.append(img[x, y])
+    # current_cluster_centers = np.array(list(zip(c_x, c_y)), dtype=np.float32)
+    # c = dict(enumerate(current_cluster_centers))
+    c = np.array(c)
+    if cluster_colors:
+        print(cluster_colors)
+        return cluster_colors[:k]
+    print(c)
+    return c
 
 
-def kmeans(img):
+def kmeans(img, cluster_colors):
     """Main k-means function iterating over max_iterations and stopping if
     the error rate of change is less then 2% for consecutive iterations, i.e. the
     algorithm converges. In our case the overall error might go up and down a little
@@ -67,17 +72,41 @@ def kmeans(img):
     max_change_rate = 0.02
     dist = sys.float_info.max
 
-    clustermask = np.zeros((h1, w1, 1), np.uint8)
-    result = np.zeros((h1, w1, 3), np.uint8)
+    c = initialize(img, cluster_colors)
+    print(len(c))
+    
+    def rek_fun(c, img2, iterations=0, max_iteration=3):
+        result = np.zeros((h1, w1, 3), np.uint8)
+        dist_list = []
+        clusters = [[]] * len(c)
+        for x in range(w1):
+            for y in range(h1):
+                pix = img2[x, y]
+                for i in range(len(c)):
+                    group_pix = c[i]
+                    dist = distance(pix, group_pix)
+                    dist_list.append((i, dist))
+                label = min(dist_list, key=lambda z: z[1])
+                dist_list.clear()
+                centroid = label[0]
+                list_c = clusters[centroid]
+                list_c.append(pix)
+                clusters[centroid] = list_c[:]
+                result[x, y] = c[centroid]
 
-    # initializes each pixel to a cluster
-    # iterate for a given number of iterations or if rate of change is very small
-    c, z = initialize(img)
-    while 0:
-        pass
+        clusters = np.array(clusters)
+        a = []
+        for i in range(len(c)):
+            mean = np.mean(clusters[i], axis=0)
+            a.append(mean)
+        iterations += 1
+        print(iterations)
+        if iterations == max_iteration:
+            return a, result
+        return rek_fun(a, result, iterations)
 
-
-    return result
+    _, img = rek_fun(c, img)
+    return img
 
 
 # num of cluster
@@ -101,7 +130,16 @@ h1, w1 = image.shape[:2]
 # execute k-means over the image
 # it returns a result image where each pixel is color with one of the cluster_colors
 # depending on its cluster assignment
-res = kmeans(image)
+# image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+exp_map = {
+    0: lambda img: img,
+    1: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2HSV),
+    2: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2LAB),
+    3: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+}
+image = exp_map[1](image)
+res = kmeans(image, cluster_colors)
 
 h1, w1 = res.shape[:2]
 h2, w2 = image.shape[:2]

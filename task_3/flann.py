@@ -1,4 +1,5 @@
 import cv2
+import glob
 
 '''NOTE: Please install opencv-contrib-python in your env'''
 
@@ -19,7 +20,7 @@ and comment line 30
 '''
 
 # cap = cv2.VideoCapture(0)
-while True:
+while 1:
     # _, frame_img = cap.read()
     # gray = cv2.cvtColor(frame_img, cv2.COLOR_BGR2GRAY)
     sift = cv2.xfeatures2d.SIFT_create()
