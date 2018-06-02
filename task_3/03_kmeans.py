@@ -44,20 +44,16 @@ def assign_to_current_mean(img, result, clustermask):
     return overall_dist
 
 
-def initialize(img, cluster_colors):
+def initialize(img):
     """inittialize the current_cluster_centers array for each cluster with a random pixel position"""
-    k = 3
+    k = 64
     c = []
     for i in range(k):
         x = np.random.randint(0, np.max(img))
         y = np.random.randint(0, np.max(img))
         c.append(img[x, y])
-    # current_cluster_centers = np.array(list(zip(c_x, c_y)), dtype=np.float32)
-    # c = dict(enumerate(current_cluster_centers))
     c = np.array(c)
-    if cluster_colors:
-        print(cluster_colors)
-        return cluster_colors[:k]
+
     print(c)
     return c
 
@@ -68,49 +64,49 @@ def kmeans(img, cluster_colors):
     algorithm converges. In our case the overall error might go up and down a little
     since there is no guarantee we find a global minimum.
     """
-    max_iter = 10
-    max_change_rate = 0.02
-    dist = sys.float_info.max
+    max_change_rate = 0.2
+    Z = img.reshape((-1, 3))
 
-    c = initialize(img, cluster_colors)
-    print(len(c))
-    
-    def rek_fun(c, img2, iterations=0, max_iteration=3):
-        result = np.zeros((h1, w1, 3), np.uint8)
-        dist_list = []
+    c = initialize(img)
+    clusters = [[]] * len(c)
+    counter = 0
+    while 1:
+        counter += 1
+        if counter == 10:
+            break
+
         clusters = [[]] * len(c)
-        for x in range(w1):
-            for y in range(h1):
-                pix = img2[x, y]
-                for i in range(len(c)):
-                    group_pix = c[i]
-                    dist = distance(pix, group_pix)
-                    dist_list.append((i, dist))
-                label = min(dist_list, key=lambda z: z[1])
-                dist_list.clear()
-                centroid = label[0]
-                list_c = clusters[centroid]
-                list_c.append(pix)
-                clusters[centroid] = list_c[:]
-                result[x, y] = c[centroid]
+        for idx, rgb in enumerate(Z):
+            dist_list = []
+            for i, clust in enumerate(c):
+                dist = distance(clust, rgb)
+                dist_list.append((i, dist))
+            label = min(dist_list, key=lambda z: z[1])
+            clusters[label[0]] = clusters[label[0]] + [idx]
 
-        clusters = np.array(clusters)
-        a = []
-        for i in range(len(c)):
-            mean = np.mean(clusters[i], axis=0)
-            a.append(mean)
-        iterations += 1
-        print(iterations)
-        if iterations == max_iteration:
-            return a, result
-        return rek_fun(a, result, iterations)
+        new_cent = []
+        for c_i in range(len(c)):
+            cent = np.mean([rgb for rgb in Z[clusters[c_i]]], axis=0)
+            new_cent.append(cent)
+        new_cent = np.array(new_cent)
+        error = distance(c, new_cent)
+        print('error ', error)
+        if error <= max_change_rate:
+            break
+        c = new_cent
 
-    _, img = rek_fun(c, img)
-    return img
-
+    Z = np.copy(Z)
+    if cluster_colors:
+        c = cluster_colors[:len(c)]
+    for i in range(len(clusters)):
+        cluster_rgb = c[i]
+        for img_idx in clusters[i]:
+            Z[img_idx] = cluster_rgb
+    result = Z.reshape(img.shape)
+    return result
 
 # num of cluster
-numclusters = 3
+numclusters = 6
 # corresponding colors for each cluster
 cluster_colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [0, 255, 255], [255, 255, 255], [0, 0, 0], [128, 128, 128]]
 # initialize current cluster centers (i.e. the pixels that represent a cluster center)
@@ -135,11 +131,12 @@ h1, w1 = image.shape[:2]
 exp_map = {
     0: lambda img: img,
     1: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2HSV),
-    2: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2LAB),
-    3: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    2: lambda img: cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
 }
-image = exp_map[1](image)
-res = kmeans(image, cluster_colors)
+image = exp_map[0](image)
+# 2nd param cluster_colors or None
+# res = kmeans(image, cluster_colors)
+res = kmeans(image, None)
 
 h1, w1 = res.shape[:2]
 h2, w2 = image.shape[:2]
