@@ -3,6 +3,7 @@ import math
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import sys
 
 
 class RansacPointGenerator:
@@ -27,6 +28,7 @@ class RansacPointGenerator:
 
         self.points = np.array([points_x, points_y])
 
+
 class Line:
     """helper class"""
     def __init__(self, a, b):
@@ -47,7 +49,6 @@ class Ransac:
         self.current_model   = Line(1, 0)
         self.num_iterations  = int(self.estimate_num_iterations(0.99, 0.5, 2))
         self.iteration_counter = 0
-
 
     def estimate_num_iterations(self, ransacProbability, outlierRatio, sampleSize):
         """
@@ -71,7 +72,6 @@ class Ransac:
         """
         return math.fabs(line.m * p[0] - p[1] + line.b) / math.sqrt(1 + line.m * line.m)
 
-
     def step(self, iter):
         """
         Run the ith step in the algorithm. Collects self.currentInlier for each step.
@@ -86,14 +86,50 @@ class Ransac:
         self.current_inliers = []
         score = 0
         idx = 0
+        print('iter ', iter)
+        if len(self.best_inliers) == 0:
+            for i in range(len(self.points[0])):
+                p = [self.points[0][i], self.points[1][i]]
+                self.current_inliers.append(p)
+        else:
+            self.current_inliers = self.best_inliers
 
         # sample two random points from point set
+        print(len(self.current_inliers))
+        a = np.random.randint(0, len(self.current_inliers))
+        b = np.random.randint(0, len(self.current_inliers))
+
+        a = self.current_inliers[a]
+        b = self.current_inliers[b]
+        a = np.array(a)
+        b = np.array(b)
 
         # compute line parameters m / b and create new line
-
+        A = np.array([a, b])
+        A = np.sort(A, axis=0)
+        a = A[0]
+        b = A[1]
+        m = (b[1] - a[1]) / (b[0] - a[0])
+        c = b[1] - (m * b[0])
 
         # loop over all points
-        # compute error of all points and add to inliers of
+        for point in self.current_inliers:
+            point = np.array(point)
+            d = np.dot(b - a, point - a)
+            d = math.sqrt(d ** 2)
+            print('d ', d)
+            # d = np.linalg.norm(np.cross(b-a, a-point))/np.linalg.norm(b-a)
+            if d <= self.threshold:
+                score = d
+            else:
+                score = d / self.threshold
+            if score < self.best_score:
+                self.best_inliers.append(point)
+                self.best_model = Line(m, c)
+                self.best_score = score
+
+
+        # compute error of all points and add to inliers if
         # err smaller than threshold update score, otherwise add error/threshold to score
 
         # if score < self.bestScore: update the best model/inliers/score
@@ -110,14 +146,14 @@ class Ransac:
             self.step(i)
 
 
-rpg = RansacPointGenerator(100,45)
-print(rpg.points)
+rpg = RansacPointGenerator(100, 45)
+# print(rpg.points)
 
 ransac = Ransac(rpg.points, 0.05)
-#ransac.run()
+ransac.run()
 
 # print rpg.points.shape[1]
-plt.plot(rpg.points[0,:], rpg.points[1,:], 'ro')
+plt.plot(rpg.points[0, :], rpg.points[1, :], 'ro')
 m = ransac.best_model.m
 b = ransac.best_model.b
 plt.plot([0, 1], [m*0 + b, m*1+b], color='k', linestyle='-', linewidth=2)
