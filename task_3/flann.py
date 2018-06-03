@@ -1,7 +1,7 @@
 import cv2
 import glob
 
-'''NOTE: Please install opencv-contrib-python in your env'''
+'''NOTE: Please install opencv-contrib-python in your env, works on linux, NOT for windows'''
 
 
 def detect_and_compute(image):
@@ -14,18 +14,18 @@ marker = glob.glob('./images/marker.jpg')
 marker = cv2.imread(marker[0])
 
 '''
-NOTE: If you'd like to use the vedoe capture comment out line 21, 23, 24, 53
-and comment line 30
+NOTE: If you'd like to use the video capture comment out line 22, 24, 25, 54
+and comment line 28
 
 '''
 
-# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
 while 1:
-    # _, frame_img = cap.read()
-    # gray = cv2.cvtColor(frame_img, cv2.COLOR_BGR2GRAY)
+    _, frame_img = cap.read()
+    gray = cv2.cvtColor(frame_img, cv2.COLOR_BGR2GRAY)
     sift = cv2.xfeatures2d.SIFT_create()
     key_points = sift.detect(marker, None)
-    gray = marker
+    # gray = marker
 
     kp1, features_1 = detect_and_compute(marker)
     kp2, features_2 = detect_and_compute(gray)
@@ -33,8 +33,11 @@ while 1:
     FLANN_INDEX_KDTREE = 0
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)  # or pass empty dictionary
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(features_2, features_2, 2)
+    # linux only comment this line on windows and comment out the next line
+    # flann = cv2.FlannBasedMatcher(index_params, search_params)
+    flann = cv2.BFMatcher()
+    matches = flann.knnMatch(features_2, features_2, k=2)
+    # matches = flann.match(features_2, features_2)
     matchesMask = [[0, 0] for i in range(len(matches))]
     for i, (m, n) in enumerate(matches):
         if m.distance < 0.7 * n.distance:
@@ -51,5 +54,5 @@ while 1:
     if ch == ord('q'):
         break
 
-# cap.release()
+cap.release()
 cv2.destroyAllWindows()
