@@ -1,18 +1,27 @@
 import cv2
 import numpy as np
+import glob
 
 
 # global constants
 min_matches = 10
-FLANN_INDEX_KDTREE = 0
-indexParams = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-searchParams = dict(checks=50)
+marker = glob.glob('./images/marker.jpg')
+marker = cv2.imread(marker[0])
 
 # initialize flann and SIFT extractor
 # note unfortunately in the latest OpenCV + python is a minor bug in the flann
 # flann = cv2.FlannBasedMatcher(indexParams, {})
 # so we use the alternative but slower Brute-Force Matcher BFMatcher
-# YOUR CODE
+
+
+def detect_and_compute(image):
+    descriptor = cv2.xfeatures2d.SIFT_create()
+    (kps, features) = descriptor.detectAndCompute(image, None)
+    return kps, features
+
+
+kp_marker, features_marker = detect_and_compute(marker)
+flann = cv2.BFMatcher()
 
 # extract marker descriptors
 # YOUR CODE
@@ -64,14 +73,22 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
         cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color_lines, 2)
 
 
+def detect_and_compute(image):
+    descriptor = cv2.xfeatures2d.SIFT_create()
+    (kps, features) = descriptor.detectAndCompute(image, None)
+    return kps, features
+
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Interactive Systems: AR Tracking')
-while True:
-    # YOUR CODE
+while 1:
+    _, frame_img = cap.read()
+    gray = cv2.cvtColor(frame_img, cv2.COLOR_BGR2GRAY)
+    kp_frame, features_frame = detect_and_compute(gray)
 
     # detect and compute descriptor in camera image
     # and match with marker descriptor
+    matches = flann.knnMatch(features_marker, features_frame, k=2)
 
     # filter matches by distance [Lowe2004]
     matches = [match[0] for match in matches if len(match) == 2 and
