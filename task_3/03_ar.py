@@ -82,7 +82,7 @@ while 1:
     # detect and compute descriptor in camera image
     # and match with marker descriptor
     matches = flann.knnMatch(features_frame, features_marker, k=2)
-    
+
 
     # filter matches by distance [Lowe2004]
     matches = [match[0] for match in matches if len(match) == 2 and
