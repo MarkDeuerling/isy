@@ -20,11 +20,10 @@ def detect_and_compute(image):
     return kps, features
 
 
-kp_marker, features_marker = detect_and_compute(marker)
 flann = cv2.BFMatcher()
 
 # extract marker descriptors
-# YOUR CODE
+kp_marker, features_marker = detect_and_compute(marker)
 
 def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
 
@@ -73,12 +72,6 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
         cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color_lines, 2)
 
 
-def detect_and_compute(image):
-    descriptor = cv2.xfeatures2d.SIFT_create()
-    (kps, features) = descriptor.detectAndCompute(image, None)
-    return kps, features
-
-
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Interactive Systems: AR Tracking')
 while 1:
@@ -88,7 +81,8 @@ while 1:
 
     # detect and compute descriptor in camera image
     # and match with marker descriptor
-    matches = flann.knnMatch(features_marker, features_frame, k=2)
+    matches = flann.knnMatch(features_frame, features_marker, k=2)
+    
 
     # filter matches by distance [Lowe2004]
     matches = [match[0] for match in matches if len(match) == 2 and
@@ -97,9 +91,10 @@ while 1:
     # if there are less than min_matches we just keep going looking
     # early break
     if len(matches) < min_matches:
-        cv2.imshow('Interactive Systems: AR Tracking', vis)
+        cv2.imshow('Interactive Systems: AR Tracking', gray)
         continue
-
+    keypointsMarker = kp_marker
+    keypointsFrame = kp_frame
     # extract 2d points from matches data structure
     p0 = [keypointsMarker[m.trainIdx].pt for m in matches]
     p1 = [keypointsFrame[m.queryIdx].pt for m in matches]
