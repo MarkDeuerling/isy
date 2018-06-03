@@ -44,7 +44,7 @@ class Ransac:
         self.threshold = threshold
         self.best_model = Line(1, 0)
         self.best_inliers = []
-        self.best_score   = 1000000000
+        self.best_score   = 0
         self.current_inliers = []
         self.current_model   = Line(1, 0)
         self.num_iterations  = int(self.estimate_num_iterations(0.99, 0.5, 2))
@@ -85,22 +85,19 @@ class Ransac:
         """
         self.current_inliers = []
         score = 0
-        idx = 0
-        print('iter ', iter)
-        if len(self.best_inliers) == 0:
-            for i in range(len(self.points[0])):
-                p = [self.points[0][i], self.points[1][i]]
-                self.current_inliers.append(p)
-        else:
-            self.current_inliers = self.best_inliers
+        num = 0
+
+        points = []
+        for i in range(len(self.points[0])):
+            p = [self.points[0][i], self.points[1][i]]
+            points.append(p)
 
         # sample two random points from point set
-        print(len(self.current_inliers))
-        a = np.random.randint(0, len(self.current_inliers))
-        b = np.random.randint(0, len(self.current_inliers))
+        a = np.random.randint(0, len(points))
+        b = np.random.randint(0, len(points))
 
-        a = self.current_inliers[a]
-        b = self.current_inliers[b]
+        a = points[a]
+        b = points[b]
         a = np.array(a)
         b = np.array(b)
 
@@ -109,24 +106,27 @@ class Ransac:
         A = np.sort(A, axis=0)
         a = A[0]
         b = A[1]
-        m = (b[1] - a[1]) / (b[0] - a[0])
+        m = (b[1] - a[1]) / (b[0] - a[0]) + sys.float_info.epsilon
         c = b[1] - (m * b[0])
 
         # loop over all points
-        for point in self.current_inliers:
+        for point in points:
             point = np.array(point)
-            d = np.dot(b - a, point - a)
-            d = math.sqrt(d ** 2)
-            print('d ', d)
-            # d = np.linalg.norm(np.cross(b-a, a-point))/np.linalg.norm(b-a)
+            x0 = point[0]
+            y0 = point[1]
+            # line intersection
+            x = (x0 + m * y0 - m * c) / (1 + m ** 2)
+            y = (m * x0 + (m ** 2) * y0 - (m ** 2) * c) / (1 + m ** 2) + c
+            # distance sample point from line
+            d = math.sqrt((x - x0)**2 + (y - y0)**2)
             if d <= self.threshold:
-                score = d
-            else:
-                score = d / self.threshold
-            if score < self.best_score:
-                self.best_inliers.append(point)
-                self.best_model = Line(m, c)
-                self.best_score = score
+                num += 1
+                self.current_inliers.append(point)
+
+        if num / len(points) > self.best_score:
+            self.best_score = num / len(points)
+            self.best_model = Line(m, c)
+            self.best_inliers = self.current_inliers
 
 
         # compute error of all points and add to inliers if
@@ -135,7 +135,7 @@ class Ransac:
         # if score < self.bestScore: update the best model/inliers/score
         # please do look at resources in the internet :)
 
-        #print iter, "  :::::::::: bestscore: ", self.best_score, " bestModel: ", self.best_model.m, self.best_model.b
+        print(iter, "  :::::::::: bestscore: ", self.best_score, " bestModel: ", self.best_model.m, self.best_model.b)
 
     def run(self):
         """
@@ -147,6 +147,10 @@ class Ransac:
 
 
 rpg = RansacPointGenerator(100, 45)
+# rpg = RansacPointGenerator(200, 45)
+# rpg = RansacPointGenerator(10, 45)
+# rpg = RansacPointGenerator(10, 4)
+# rpg = RansacPointGenerator(100, 4)
 # print(rpg.points)
 
 ransac = Ransac(rpg.points, 0.05)
