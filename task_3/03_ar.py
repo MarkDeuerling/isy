@@ -25,19 +25,38 @@ flann = cv2.BFMatcher()
 # extract marker descriptors
 kp_marker, features_marker = detect_and_compute(marker)
 
-def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
 
+def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
     # define vertices, edges and colors of your 3D object, e.g. cube
 
-    # YOUR CODE HERE
-    # vertices = np.float32([[x, y, z,][x, y, z]])
-    # edges = [(0, 1), ...]
+    vertices = np.float32([[0, 0, 0],
+                          [1, 0, 0],
+                          [1, 1, 0],
+                          [0, 1, 0],
+
+                          [0, 0, 0.5],
+                          [1, 0, 0.5],
+                          [1, 1, 0.5],
+                          [0, 1, 0.5]])
+    edges = [(0, 1),
+             (1, 2),
+             (2, 3),
+             (3, 0),
+
+             (0, 4),
+             (1, 5),
+             (2, 6),
+             (3, 7),
+
+             (4, 5),
+             (5, 6),
+             (6, 7),
+             (7, 4)]
 
     color_lines = (0, 0, 0)
 
     # define quad plane in 3D coordinates with z = 0
-    quad_3d = np.float32([[x_start, y_start, 0], [x_end, y_start, 0],
-                [x_end, y_end, 0], [x_start, y_end, 0]])
+    quad_3d = np.float32([[x_start, y_start, 0], [x_end, y_start, 0], [x_end, y_end, 0], [x_start, y_end, 0]])
 
     h, w = img.shape[:2]
     # define intrinsic camera parameter
@@ -48,10 +67,11 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
     # find object pose from 3D-2D point correspondences of the 3d quad using Levenberg-Marquardt optimization
     # in order to work we need K (given above and YOUR distortion coefficients from Assignment 2 (camera calibration))
     # YOUR VALUES HERE
-    #dist_coef = np.array([])
+    # dist_coef = np.array([])
+    dist_coef = np.zeros((4, 1))
 
     # compute extrinsic camera parameters using cv2.solvePnP
-    # YOUR CODE HERE
+    _, rot_vec, trans_vec = cv2.solvePnP(quad_3d, quad, K, dist_coef, flags=cv2.SOLVEPNP_ITERATIVE)
 
     # transform vertices: scale and translate form 0 - 1, in window size of the marker
     scale = [x_end-x_start, y_end-y_start, x_end-x_start]
@@ -61,20 +81,27 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
 
     # call cv2.projectPoints with verts, and solvePnP result, K, and dist_coeff
     # returns a tuple that includes the transformed vertices as a first argument
-    # YOUR CODE HERE
+    verts, _ = cv2.projectPoints(verts, rot_vec, trans_vec, K, dist_coef)
 
     # we need to reshape the result of projectPoints
     verts = verts.reshape(-1, 2)
 
     # render edges
-    for i, j in edges:
-        (x_start, y_start), (x_end, y_end) = verts[i], verts[j]
-        cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color_lines, 2)
+    for edge in edges:
+        x_start, y_start = edge[0]
+        x_end, y_end = edge[1]
+        cv2.line(img, x_start, y_start, x_end, y_end, color_lines, 2)
+    # for i, j in edges:
+    #     (x_start, y_start), (x_end, y_end) = verts[i], verts[j]
+    #     cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color_lines, 2)
 
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Interactive Systems: AR Tracking')
 while 1:
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
     _, frame_img = cap.read()
     gray = cv2.cvtColor(frame_img, cv2.COLOR_BGR2GRAY)
     kp_frame, features_frame = detect_and_compute(gray)
@@ -82,7 +109,6 @@ while 1:
     # detect and compute descriptor in camera image
     # and match with marker descriptor
     matches = flann.knnMatch(features_frame, features_marker, k=2)
-
 
     # filter matches by distance [Lowe2004]
     matches = [match[0] for match in matches if len(match) == 2 and
@@ -103,36 +129,41 @@ while 1:
 
     # we need at least 4 match points to find a homography matrix
     if len(p0) < 4:
-        cv2.imshow('Interactive Systems: AR Tracking', vis)
+        cv2.imshow('Interactive Systems: AR Tracking', frame_img)
         continue
 
     # find homography using p0 and p1, returning H and status
     # H - homography matrix
     # status - status about inliers and outliers for the plane mapping
-    # YOUR CODE
+    H, mask = cv2.findHomography(p0, p1, cv2.RANSAC, 4.0)
 
     # on the basis of the status object we can now filter RANSAC outliers
+    if mask is None:
+        continue
     mask = mask.ravel() != 0
     if mask.sum() < min_matches:
-        cv2.imshow('Interactive Systems: AR Tracking', vis)
+        cv2.imshow('Interactive Systems: AR Tracking', frame_img)
         continue
 
     # take only inliers - mask of Outlier/Inlier
-    # p0, p1 = p0[mask], p1[mask]
+    p0, p1 = p0[mask], p1[mask]
     # get the size of the marker and form a quad in pixel coords np float array using w/h as the corner points
-    # YOUR CODE HERE
+    w1, h1 = marker_size = marker.shape[:2]
+    quad = [[0, 0], [0, h1], [w1, h1], [w1, 0]]
 
     # perspectiveTransform needs a 3-dimensional array
-    quad = np.array([quad])
+    quad = np.array([quad], dtype=np.float32)
     quad_transformed = cv2.perspectiveTransform(quad, H)
     # transform back to 2D array
     quad = quad_transformed[0]
 
     # render quad in image plane and feature points as circle using cv2.polylines + cv2.circle
-    # YOUR CODE HERE
+    cv2.polylines(frame_img, [quad.astype(dtype=np.int)], isClosed=True, color=(0, 0, 0), thickness=2)
+    for fp1 in p1:
+        fp1 = fp1.astype(np.int)
+        cv2.circle(frame_img, (fp1[0], fp1[1]), 10, (0, 255, 0))
 
     # render virtual object on top of quad
-    render_virtual_object(vis, 0, 0, h1, w1, quad)
+    render_virtual_object(frame_img, 0, 0, h1, w1, quad)
 
-    cv2.imshow('Interactive Systems: AR Tracking', vis)
-
+    cv2.imshow('Interactive Systems: AR Tracking', frame_img)
