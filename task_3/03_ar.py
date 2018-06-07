@@ -26,7 +26,7 @@ flann = cv2.BFMatcher()
 kp_marker, features_marker = detect_and_compute(marker)
 
 
-def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
+def render_virtual_object(img, x0, y0, x1, y1, quad):
     # define vertices, edges and colors of your 3D object, e.g. cube
 
     vertices = np.float32([[0, 0, 0],
@@ -34,10 +34,10 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
                           [1, 1, 0],
                           [0, 1, 0],
 
-                          [0, 0, 0.5],
-                          [1, 0, 0.5],
-                          [1, 1, 0.5],
-                          [0, 1, 0.5]])
+                          [0, 0, -0.5],
+                          [1, 0, -0.5],
+                          [1, 1, -0.5],
+                          [0, 1, -0.5]])
     edges = [(0, 1),
              (1, 2),
              (2, 3),
@@ -56,7 +56,7 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
     color_lines = (0, 0, 0)
 
     # define quad plane in 3D coordinates with z = 0
-    quad_3d = np.float32([[x_start, y_start, 0], [x_end, y_start, 0], [x_end, y_end, 0], [x_start, y_end, 0]])
+    quad_3d = np.float32([[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]])
 
     h, w = img.shape[:2]
     # define intrinsic camera parameter
@@ -74,8 +74,8 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
     _, rot_vec, trans_vec = cv2.solvePnP(quad_3d, quad, K, dist_coef, flags=cv2.SOLVEPNP_ITERATIVE)
 
     # transform vertices: scale and translate form 0 - 1, in window size of the marker
-    scale = [x_end-x_start, y_end-y_start, x_end-x_start]
-    trans = [x_start, y_start, -x_end-x_start]
+    scale = [x1 - x0, y1 - y0, x1 - x0]
+    trans = [x0, y0, -x1 - x0]
 
     verts = scale * vertices + trans
 
@@ -88,11 +88,10 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
 
     # render edges
     for edge in edges:
-        x_start, y_start = verts[edge[0]]
-        x_end, y_end = verts[edge[1]]
-        cv2.line(img, x_start, y_start, x_end, y_end, color_lines, 2)
+        x0, y0 = verts[edge[0]]
+        x1, y1 = verts[edge[1]]
+        cv2.line(img, (int(x0), int(y0)), (int(x1), int(y1)), color_lines, 2)
     
-
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Interactive Systems: AR Tracking')
@@ -154,12 +153,13 @@ while 1:
     quad_transformed = cv2.perspectiveTransform(quad, H)
     # transform back to 2D array
     quad = quad_transformed[0]
+    quad_int = quad.astype(dtype=np.int)
 
     # render quad in image plane and feature points as circle using cv2.polylines + cv2.circle
-    cv2.polylines(frame_img, [quad.astype(dtype=np.int)], isClosed=True, color=(0, 0, 0), thickness=2)
-    for fp1 in p1:
-        fp1 = fp1.astype(np.int)
-        cv2.circle(frame_img, (fp1[0], fp1[1]), 10, (0, 255, 0))
+    cv2.polylines(frame_img, [quad_int], isClosed=True, color=(0, 0, 255), thickness=2)
+    for p in p1:
+        p = p.astype(np.int)
+        cv2.circle(frame_img, (p[0], p[1]), 20, (115, 0, 0))
 
     # render virtual object on top of quad
     render_virtual_object(frame_img, 0, 0, h1, w1, quad)
