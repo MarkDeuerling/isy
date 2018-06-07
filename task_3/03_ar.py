@@ -88,12 +88,10 @@ def render_virtual_object(img, x_start, y_start, x_end, y_end, quad):
 
     # render edges
     for edge in edges:
-        x_start, y_start = edge[0]
-        x_end, y_end = edge[1]
+        x_start, y_start = verts[edge[0]]
+        x_end, y_end = verts[edge[1]]
         cv2.line(img, x_start, y_start, x_end, y_end, color_lines, 2)
-    # for i, j in edges:
-    #     (x_start, y_start), (x_end, y_end) = verts[i], verts[j]
-    #     cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color_lines, 2)
+    
 
 
 cap = cv2.VideoCapture(0)
