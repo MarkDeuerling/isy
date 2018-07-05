@@ -91,7 +91,7 @@ def render_virtual_object(img, x0, y0, x1, y1, quad):
         x0, y0 = verts[edge[0]]
         x1, y1 = verts[edge[1]]
         cv2.line(img, (int(x0), int(y0)), (int(x1), int(y1)), color_lines, 2)
-    
+
 
 cap = cv2.VideoCapture(0)
 cv2.namedWindow('Interactive Systems: AR Tracking')

@@ -14,6 +14,8 @@ from sklearn import svm
 
 # 1. Implement a SIFT feature extraction for a set of training images ./images/db/train/** (see 2.3 image retrieval)
 # use 256x256 keypoints on each image with subwindow of 15x15px
+sift = cv2.xfeatures2d.SIFT_create()
+
 
 # 2. each descriptor (set of features) need to be flattened in one vector
 # That means you need a X_train matrix containing a shape of (num_train_images, num_keypoints*num_entry_per_keypoint)
